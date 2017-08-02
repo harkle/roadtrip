@@ -1,0 +1,36 @@
+{
+  "points": [
+    {
+      "name": "Yverdon",
+      "start_segment": 0
+    },
+    {
+      "name": "Vallorbe",
+      "start": 2300
+    },
+    {
+      "name": "Le Pont",
+      "start": 3050
+    },
+    {
+      "name": "Le Lieu",
+      "start": 3450
+    },
+    {
+      "name": "Le Pont",
+      "start": 4600
+    }
+  ],
+  "areas": [
+    {
+      "name": "Plain de l'Orbe",
+      "start": 450,
+      "end": 1100
+    },
+    {
+      "name": "Vallée de Joux",
+      "start_segment": 1,
+      "end": 4717
+    }
+  ]   
+}

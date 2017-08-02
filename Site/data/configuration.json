@@ -1,0 +1,7 @@
+{
+  "max_frames": 4714,
+  "basedir": "./medias/images/demo/",
+  "segments_file": "./data/segments.json",
+  "places_file": "./data/places.json",
+  "audio": ["./medias/music/intro.mp3", "./medias/music/loop.mp3"]
+}

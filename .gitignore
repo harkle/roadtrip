@@ -5,3 +5,6 @@ application.linux64
 application.windows32
 application.windows64
 application.macosx
+*.mp3
+Site/medias/images/hd
+Site/medias/images/sd

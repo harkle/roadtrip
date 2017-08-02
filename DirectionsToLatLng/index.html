@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <title>A dirty Google Directions to LatLng converter</title>
+    <style>
+      #map {
+        height: 50%;
+      }
+
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #directions {
+        width: 100%;
+        height: calc(30% - 50px);
+      }
+      #coords {
+        width: 100%;
+        height: 30%;
+      }
+      button {
+        height: 50px;
+        width: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <textarea id="directions">
+{
+  "origin": "46.711996, 6.379081",
+  "destination": "46.668014, 6.325292",
+  "waypoints": [
+    {
+      "location": "46.631053, 6.260342"
+    },
+    {
+      "location": "46.618389, 6.266104"
+    }
+  ],
+  "travelMode": "DRIVING"
+}</textarea>
+  <button onclick="calculateAndDisplayRoute();">CALCULATE</button>
+    <div id="map"></div>
+    <textarea id="coords"></textarea>
+    <script>
+      var final_points = [];
+
+      var directionsService, directionsDisplay, map, pinImage;
+      function initMap() {
+        directionsService = new google.maps.DirectionsService;
+        directionsDisplay = new google.maps.DirectionsRenderer;
+        map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 7,
+          center: {lat: 41.85, lng: -87.65}
+        });
+        directionsDisplay.setMap(map);
+
+
+        var pinColor1 = "ffffff";
+        pinImage1 = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + pinColor1,
+        new google.maps.Size(21, 34),
+        new google.maps.Point(0,0),
+        new google.maps.Point(10, 34));
+
+        var pinColor2 = "ff0000";
+        pinImage2 = new google.maps.MarkerImage("http://chart.apis.google.com/chart?chst=d_map_pin_letter&chld=%E2%80%A2|" + pinColor2,
+        new google.maps.Size(21, 34),
+        new google.maps.Point(0,0),
+        new google.maps.Point(10, 34));
+      }
+
+      function addMarker(map, myLatLng, title) {
+        var marker = new google.maps.Marker({
+          position: myLatLng,
+          map: map,
+        });
+      }
+
+      function deg2rad(deg) {
+        return deg * (Math.PI/180)
+      }
+
+
+      function getDistance(point1, point2) {
+        var R = 6371;
+        var dLat = deg2rad(point2.lat - point1.lat);
+        var dLon = deg2rad(point2.lng - point1.lng); 
+        var a = 
+          Math.sin(dLat/2) * Math.sin(dLat/2) +
+          Math.cos(deg2rad(point1.lat)) * Math.cos(deg2rad(point2.lat)) * 
+          Math.sin(dLon/2) * Math.sin(dLon/2)
+          ; 
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+        var d = R * c;
+        return d * 1000;
+      }
+
+      function computeAngle(angle, index) {
+        return angle;
+      }
+
+      function calculateAndDisplayRoute() {
+        var coords = document.getElementById('directions').value;
+        coords = JSON.parse(coords);
+        directionsService.route(coords, function(response, status) {
+          if (status === 'OK') {
+            directionsDisplay.setDirections(response);
+            
+            result = directionsDisplay.getDirections()
+
+            var route = result.routes[0];
+            var points = new Array();
+            var legs = route.legs;
+            for (i = 0; i < legs.length; i++) {
+              var steps = legs[i].steps;
+              for (j = 0; j < steps.length; j++) {
+                var nextSegment = steps[j].path;
+                for (k = 0; k < nextSegment.length; k++) {
+                  points.push({
+                    lat: nextSegment[k].lat(),
+                    lng: nextSegment[k].lng()
+                  });
+                }
+              }
+            }
+
+            var lastAddedPoint = points[0];
+            for (var i = 1; i < points.length; i++) {
+                var distance = getDistance(points[i], lastAddedPoint);
+                if (distance > 15) {
+                  var num_internediate_steps = ~~(distance / 15);
+
+                  var segment = {
+                    lat: (points[i].lat - lastAddedPoint.lat) / (num_internediate_steps + 1),
+                    lng: (points[i].lng - lastAddedPoint.lng) / (num_internediate_steps + 1)
+                  };
+
+                  for (var j = 1; j <= num_internediate_steps; j++) {
+                    final_points.push({
+                      lat: lastAddedPoint.lat + (segment.lat * j),
+                      lng: lastAddedPoint.lng + (segment.lng * j),
+                      intermediate: true
+                    });
+                  }
+
+                  lastAddedPoint = points[i];
+                  final_points.push(points[i]);
+                } else if (distance < 10) {
+                  
+                } else {
+                  lastAddedPoint = points[i];
+                  final_points.push(points[i]);                  
+                }
+            }
+
+            var html = '';
+            for (var c = 0; c < final_points.length; c++) {
+              final_points[c].angle = 0;
+              if (c > 0) {
+                var lat = final_points[c].lat - final_points[c - 1].lat;
+                var lng = final_points[c].lng - final_points[c - 1].lng;
+              }
+
+              var angle = 0;
+              if (c > 0) angle = Math.atan2(final_points[c].lng - final_points[c - 1].lng, final_points[c].lat - final_points[c - 1].lat) * 180.0 / Math.PI;
+              final_points[c].angle = computeAngle(angle, c);
+              html += final_points[c].lat + ',' + final_points[c].lng + ',' + final_points[c].angle + "\n";
+              //addMarker(map, final_points[c], c);                
+            }
+            
+            var coords = document.getElementById('coords');
+            coords.value = html;
+          } else {
+            window.alert('Directions request failed due to ' + status);
+          }
+        });
+      }
+    </script>
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=YOU_API_KEY&callback=initMap">
+    </script>
+  </body>
+</html>
